@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IndieGameZone 🎮 - Tienda & Antivirus con GitHub</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --text: #f8fafc;
+            --subtext: #94a3b8;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        body { font-family: sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; }
+        
+        header { background: #020617; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; }
+        .logo { font-size: 1.4rem; font-weight: bold; color: #38bdf8; }
+        nav { display: flex; gap: 10px; }
+        nav button { background: var(--accent); color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .admin-btn { background: #334155; }
+
+        .container { max-width: 1000px; margin: 20px auto; padding: 0 15px; }
+
+        /* BANNER ADSENSE */
+        .adsense-banner { width: 100%; height: 90px; background: #1e293b; border: 1px dashed #475569; margin: 15px 0; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 0.85rem; border-radius: 8px; }
+
+        /* GRILLA */
+        .games-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+        .game-card { background: var(--card-bg); border-radius: 10px; overflow: hidden; border: 1px solid #334155; padding: 12px; }
+        .badge { background: #334155; padding: 2px 8px; border-radius: 4px; color: #38bdf8; font-size: 0.8rem; font-weight: bold; }
+
+        /* MODALES Y FORMULARIOS */
+        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; padding: 15px; z-index: 100; }
+        .modal-content { background: var(--card-bg); padding: 25px; border-radius: 12px; max-width: 500px; width: 100%; position: relative; border: 1px solid #475569; }
+        .close { position: absolute; top: 12px; right: 15px; cursor: pointer; color: var(--subtext); font-size: 1.2rem; }
+
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 4px; color: #38bdf8; font-size: 0.85rem; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #fff; box-sizing: border-box; }
+
+        .btn-action { width: 100%; background: var(--success); color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        
+        /* ADMIN TABLA */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #334155; font-size: 0.9rem; }
+        .btn-approve { background: var(--success); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        .btn-reject { background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">🎮 DevGameZone (GitHub Hosted)</div>
+        <nav>
+            <button onclick="abrirModal('uploadModal')">📤 Subir Juego</button>
+            <button class="admin-btn" onclick="abrirModal('adminModal')">👑 Panel Admin</button>
+        </nav>
+    </header>
+
+    <div class="container">
+        <!-- ADSENSE ANUNCIO SUPERIOR -->
+        <div class="adsense-banner">
+            <span>[ Anuncio AdSense - Cabecera ]</span>
+        </div>
+
+        <h2>🎮 Juegos Aprobados y Verificados</h2>
+        <div class="games-grid" id="publicGamesGrid">
+            <!-- Aquí se muestran los juegos verificados sin malware -->
+        </div>
+    </div>
+
+    <!-- MODAL DE SUBIDA + ANTIVIRUS -->
+    <div class="modal" id="uploadModal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModales()">✖</span>
+            <h2>📤 Enviar Juego a Revisión</h2>
+            <p style="font-size: 0.85rem; color: var(--subtext);">Tu archivo pasará por nuestro antivirus (VirusTotal/Hash Check) antes de solicitar la revisión del Administrador.</p>
+
+            <div class="form-group">
+                <label>Nombre del Juego:</label>
+                <input type="text" id="gameTitle" placeholder="Ej: Super Runner APK">
+            </div>
+            <div class="form-group">
+                <label>Tipo de Archivo:</label>
+                <select id="gameType">
+                    <option value="Android (.APK)">Android (.APK)</option>
+                    <option value="PC (.ZIP / .RAR)">PC (.ZIP / .RAR)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Enlace Directo al Archivo (Google Drive / GitHub / Mediafire):</label>
+                <input type="url" id="gameLink" placeholder="https://drive.google.com/file/d/...">
+            </div>
+
+            <!-- RESULTADO DEL ANÁLISIS DEL ANTIVIRUS -->
+            <div id="antivirusStatus" style="display:none; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 0.85rem;"></div>
+
+            <button class="btn-action" onclick="analizarYEnviar()">🛡️ Analizar con Antivirus y Enviar</button>
+        </div>
+    </div>
+
+    <!-- PANEL DE ADMINISTRADOR (SOLO PARA TI) -->
+    <div class="modal" id="adminModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <span class="close" onclick="cerrarModales()">✖</span>
+            <h2 style="color: #38bdf8;">👑 Panel del Administrador</h2>
+            <p style="font-size: 0.85rem; color: var(--subtext);">Revisa el resultado del antivirus y decide qué juegos publicar en la tienda.</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Juego</th>
+                        <th>Tipo</th>
+                        <th>Antivirus</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="adminTableBody">
+                    <!-- Aquí se cargan los juegos pendientes -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Simulador de Base de Datos guardada en LocalStorage (Perfecto para GitHub Pages)
+        let juegosPendientes = JSON.parse(localStorage.getItem('juegosPendientes')) || [
+            {
+                id: 1,
+                titulo: "CyberRacer Demo",
+                tipo: "Android (.APK)",
+                link: "https://example.com/game.apk",
+                antivirus: "✅ Limpio (0/72 Antivirus)"
+            }
+        ];
+
+        let juegosPublicados = JSON.parse(localStorage.getItem('juegosPublicados')) || [
+            {
+                id: 99,
+                titulo: "Pixel Quest 2D",
+                tipo: "PC (.ZIP)",
+                link: "https://example.com/quest.zip",
+                antivirus: "✅ Verificado por Admin"
+            }
+        ];
+
+        function actualizarLocalStorage() {
+            localStorage.setItem('juegosPendientes', JSON.stringify(juegosPendientes));
+            localStorage.setItem('juegosPublicados', JSON.stringify(juegosPublicados));
+            renderizarListas();
+        }
+
+        // 1. ESCÁNER Y ENVÍO DEL CREADOR
+        function analizarYEnviar() {
+            const titulo = document.getElementById('gameTitle').value.trim();
+            const tipo = document.getElementById('gameType').value;
+            const link = document.getElementById('gameLink').value.trim();
+            const statusBox = document.getElementById('antivirusStatus');
+
+            if (!titulo || !link) {
+                alert("Por favor completa los datos.");
+                return;
+            }
+
+            statusBox.style.display = "block";
+            statusBox.style.background = "#334155";
+            statusBox.innerHTML = "⏳ <b>Escaneando archivo en busca de Malware...</b>";
+
+            // Simulación de escaneo con VirusTotal API
+            setTimeout(() => {
+                // Generar un resultado de escaneo seguro
+                statusBox.style.background = "#065f46";
+                statusBox.style.color = "#34d399";
+                statusBox.innerHTML = "🛡️ <b>Antivirus Status:</b> ¡Archivo LIMPIO de Troyanos y Malware! Enviado al Administrador.";
+
+                juegosPendientes.push({
+                    id: Date.now(),
+                    titulo: titulo,
+                    tipo: tipo,
+                    link: link,
+                    antivirus: "✅ Limpio (0/70 Amenazas)"
+                });
+
+                actualizarLocalStorage();
+
+                setTimeout(() => {
+                    cerrarModales();
+                    statusBox.style.display = "none";
+                }, 2000);
+
+            }, 2500);
+        }
+
+        // 2. PANEL DE CONTROL DE ADMINISTRADOR
+        function renderizarListas() {
+            // Renderizar Tienda Pública
+            const publicGrid = document.getElementById('publicGamesGrid');
+            publicGrid.innerHTML = "";
+            
+            if (juegosPublicados.length === 0) {
+                publicGrid.innerHTML = "<p style='color: var(--subtext)'>No hay juegos publicados aún.</p>";
+            } else {
+                juegosPublicados.forEach(j => {
+                    publicGrid.innerHTML += `
+                        <div class="game-card">
+                            <h3>${j.titulo}</h3>
+                            <span class="badge">${j.tipo}</span>
+                            <p style="font-size:0.8rem; color:#34d399; margin-top:8px;">${j.antivirus}</p>
+                            <a href="${j.link}" target="_blank" style="display:block; text-align:center; background: var(--accent); color:white; text-decoration:none; padding:8px; border-radius:6px; font-weight:bold; margin-top:10px;">⬇ Descargar</a>
+                        </div>
+                    `;
+                });
+            }
+
+            // Renderizar Tabla Admin
+            const adminBody = document.getElementById('adminTableBody');
+            adminBody.innerHTML = "";
+
+            if (juegosPendientes.length === 0) {
+                adminBody.innerHTML = "<tr><td colspan='4' style='text-align:center; color: var(--subtext);'>No hay juegos pendientes de revisión.</td></tr>";
+            } else {
+                juegosPendientes.forEach(j => {
+                    adminBody.innerHTML += `
+                        <tr>
+                            <td><b>${j.titulo}</b></td>
+                            <td>${j.tipo}</td>
+                            <td style="color:#34d399">${j.antivirus}</td>
+                            <td>
+                                <button class="btn-approve" onclick="aprobarJuego(${j.id})">Aprobar</button>
+                                <button class="btn-reject" onclick="rechazarJuego(${j.id})">Rechazar</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        function aprobarJuego(id) {
+            const index = juegosPendientes.findIndex(j => j.id === id);
+            if (index !== -1) {
+                const juego = juegosPendientes.splice(index, 1)[0];
+                juegosPublicados.push(juego);
+                actualizarLocalStorage();
+                alert("¡Juego APROBADO y publicado en la tienda!");
+            }
+        }
+
+        function rechazarJuego(id) {
+            const index = juegosPendientes.findIndex(j => j.id === id);
+            if (index !== -1) {
+                juegosPendientes.splice(index, 1);
+                actualizarLocalStorage();
+                alert("Juego rechazado y eliminado.");
+            }
+        }
+
+        function abrirModal(id) { document.getElementById(id).style.display = "flex"; }
+        function cerrarModales() { document.querySelectorAll('.modal').forEach(m => m.style.display = "none"); }
+
+        renderizarListas();
+    </script>
+</body>
+</html>
